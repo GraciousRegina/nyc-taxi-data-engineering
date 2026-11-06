@@ -1,9 +1,9 @@
 
 # NYC Taxi Data Engineering & Analytics Pipeline
 
-An end-to-end data engineering project that ingests, validates, stores, and transforms New York City Yellow Taxi trip data using Python, PostgreSQL, Apache Airflow, dbt, and Docker.
+An end-to-end data engineering project that ingests, validates, stores, and transforms New York City Yellow Taxi trip data using **Python, PostgreSQL, Apache Airflow, dbt, and Docker**.
 
-The project demonstrates practical data engineering skills including ETL development, workflow orchestration, data warehousing, SQL transformations, data quality testing, and recovery pipeline design.
+The project demonstrates practical data engineering skills including ETL pipeline development, workflow orchestration, data warehousing, SQL transformations, automated data quality testing, and recovery workflow design.
 
 ## Project Overview
 
@@ -11,14 +11,15 @@ This pipeline processes publicly available NYC Yellow Taxi trip records and tran
 
 ### Key Results
 
-- **2,964,550 taxi trip records** ingested for January 2024.
-- PostgreSQL warehouse implemented using Docker.
-- Automated monthly ingestion workflow designed with Apache Airflow.
+- **2,964,550 NYC Yellow Taxi trip records** ingested for January 2024.
+- PostgreSQL 16 data warehouse deployed using Docker.
+- Monthly ingestion and processing workflow developed with Apache Airflow.
 - Daily recovery workflow designed to identify missing monthly loads.
-- Three dbt analytics models developed.
+- **6 Airflow pipeline tasks successfully completed** in the November 6, 2026 run.
+- Three dbt analytical models developed.
 - **10 dbt tests passed.**
 - **5 Python integration tests passed.**
-- Ingestion tracking implemented to monitor data loading.
+- Ingestion tracking implemented to monitor monthly data loading.
 
 ## Technology Stack
 
@@ -27,7 +28,7 @@ This pipeline processes publicly available NYC Yellow Taxi trip records and tran
 | Python 3.12 | Data ingestion, processing, and validation |
 | Pandas | Data manipulation |
 | PyArrow | Parquet file processing |
-| PostgreSQL 16 | Data warehouse |
+| PostgreSQL 16 | Data warehousing |
 | Apache Airflow 2.10.5 | Workflow orchestration |
 | dbt | SQL transformations and data quality testing |
 | Docker & Docker Compose | Containerized infrastructure |
@@ -75,7 +76,7 @@ The ingestion layer supports data validation and tracking of loaded datasets.
 
 **3. PostgreSQL Data Warehouse**
 
-PostgreSQL stores the ingested trip data and ingestion metadata.
+PostgreSQL stores ingested trip data and ingestion metadata.
 
 Primary tables:
 
@@ -84,15 +85,15 @@ Primary tables:
 
 **4. dbt Transformations**
 
-dbt transforms warehouse data into reusable analytical models.
+dbt transforms warehouse data into reusable analytical models for taxi demand and pickup-location analysis.
 
 **5. Data Quality Testing**
 
-Python integration tests and dbt tests help verify pipeline correctness and data integrity.
+Python integration tests and dbt tests verify ingestion and transformation correctness.
 
 **6. Apache Airflow Orchestration**
 
-Airflow provides workflow definitions for monthly pipeline execution and daily recovery checks.
+Airflow defines monthly pipeline execution and daily recovery workflows.
 
 ## Data Warehouse
 
@@ -129,7 +130,7 @@ A fact model designed to support daily taxi demand analysis.
 
 An analytical model designed to support pickup-location analysis.
 
-These models demonstrate SQL-based transformation and analytical data modeling.
+These models demonstrate SQL-based transformations and analytical data modeling.
 
 ## Apache Airflow Orchestration
 
@@ -141,13 +142,38 @@ The project contains two Airflow DAGs.
 
 Defines the monthly ingestion, validation, and transformation workflow.
 
+The main pipeline includes six tasks:
+
+1. `verify_airflow`
+2. `get_target_month`
+3. `ingest_taxi_data`
+4. `validate_taxi_warehouse`
+5. `run_dbt_models`
+6. `test_dbt_models`
+
 ### Recovery DAG
 
 **File:** `dags/nyc_taxi_recovery.py`
 
 Defines a daily workflow for checking missing monthly loads and coordinating recovery.
 
-The DAGs are currently paused to prevent unintended execution.
+Both DAGs are currently paused to prevent unintended scheduled execution.
+
+## Pipeline Execution Screenshots
+
+### Airflow Execution History
+
+The Airflow interface shows the execution history of the NYC Taxi pipeline, including successful pipeline runs.
+
+![Airflow Execution History](screenshots/airflow_dags.png)
+
+### Successful End-to-End Pipeline Execution
+
+On November 6, 2026, the Airflow pipeline completed all six tasks successfully.
+
+The execution graph demonstrates the workflow from environment verification and monthly ingestion through PostgreSQL validation, dbt transformations, and data quality testing.
+
+![Successful Airflow Pipeline](screenshots/airflow_pipeline_success.png)
 
 ## Data Quality & Testing
 
@@ -157,6 +183,7 @@ The project includes automated tests for pipeline reliability.
 |---|---|
 | dbt tests | 10 passed |
 | Python integration tests | 5 passed |
+| Airflow main pipeline | 6 of 6 tasks successful in the selected run |
 
 Testing helps validate the ingestion and transformation components.
 
@@ -175,6 +202,10 @@ nyc-taxi-data-engineering/
 |
 |-- config/
 |   |-- profiles.yml
+|
+|-- screenshots/
+|   |-- airflow_dags.png
+|   |-- airflow_pipeline_success.png
 |
 |-- Dockerfile.airflow
 |-- README.md
@@ -250,7 +281,7 @@ Built dbt staging and analytical models to support taxi demand and pickup-locati
 
 ### Workflow Orchestration
 
-Developed Airflow workflows for scheduled processing and recovery checks.
+Developed Airflow workflows for monthly processing and daily recovery checks.
 
 ### Data Quality
 
