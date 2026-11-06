@@ -1,157 +1,166 @@
+
 # NYC Taxi Data Engineering & Analytics Pipeline
 
-An end-to-end data engineering project that ingests, validates, transforms, and orchestrates New York City Yellow Taxi trip data using Python, PostgreSQL, Apache Airflow, dbt, and Docker.
+An end-to-end data engineering project that ingests, validates, stores, and transforms New York City Yellow Taxi trip data using Python, PostgreSQL, Apache Airflow, dbt, and Docker.
 
-The pipeline is designed for repeatable monthly ingestion, automated data-quality checks, analytical modeling, and recovery from missed or incomplete processing runs.
+The project demonstrates practical data engineering skills including ETL development, workflow orchestration, data warehousing, SQL transformations, data quality testing, and recovery pipeline design.
 
-## Project Highlights
+## Project Overview
 
-- **2,964,550 taxi trips** ingested for January 2024.
-- **Apache Airflow** orchestrates ingestion, validation, dbt transformations, and testing.
-- **PostgreSQL** stores raw taxi trips, ingestion metadata, and analytical models.
-- **dbt** builds reusable staging, fact, and location-level analytics models.
-- **Automated recovery DAG** identifies eligible missing monthly loads and triggers controlled recovery.
-- **Idempotent ingestion** prevents unnecessary duplicate processing.
-- **Docker Compose** provides a containerized development environment.
+This pipeline processes publicly available NYC Yellow Taxi trip records and transforms raw transportation data into structured analytical datasets.
+
+### Key Results
+
+- **2,964,550 taxi trip records** ingested for January 2024.
+- PostgreSQL warehouse implemented using Docker.
+- Automated monthly ingestion workflow designed with Apache Airflow.
+- Daily recovery workflow designed to identify missing monthly loads.
+- Three dbt analytics models developed.
+- **10 dbt tests passed.**
+- **5 Python integration tests passed.**
+- Ingestion tracking implemented to monitor data loading.
 
 ## Technology Stack
 
-| Category | Technologies |
+| Technology | Purpose |
 |---|---|
-| Programming | Python, SQL |
-| Orchestration | Apache Airflow |
-| Database | PostgreSQL 16 |
-| Data Transformation | dbt Core, dbt-postgres |
-| Data Processing | pandas, PyArrow |
-| Infrastructure | Docker, Docker Compose |
-| Testing | pytest, dbt tests |
-| Data Source | NYC TLC Yellow Taxi Trip Records |
+| Python 3.12 | Data ingestion, processing, and validation |
+| Pandas | Data manipulation |
+| PyArrow | Parquet file processing |
+| PostgreSQL 16 | Data warehouse |
+| Apache Airflow 2.10.5 | Workflow orchestration |
+| dbt | SQL transformations and data quality testing |
+| Docker & Docker Compose | Containerized infrastructure |
+| SQL | Analytical queries and data modeling |
+| Git & GitHub | Version control |
 
 ## Pipeline Architecture
 
-```text
-NYC TLC Yellow Taxi Parquet Files
-                |
-                v
-       Python Ingestion
-                |
-                v
-       PostgreSQL Warehouse
-       |                  |
-       v                  v
-  taxi_trips       ingestion_tracking
-       |
-       v
-   Data Validation
-       |
-       v
-   dbt Transformations
-       |
-       +-- stg_taxi_trips
-       |
-       +-- fct_daily_taxi_demand
-       |
-       +-- mart_pickup_locations
-       |
-       v
-   dbt Data Quality Tests
+```mermaid
+flowchart TD
+    A["NYC TLC Yellow Taxi Parquet Files"] --> B["Python Monthly Ingestion"]
+    B --> C[("PostgreSQL Warehouse")]
+    C --> D["Warehouse Validation"]
+    D --> E["dbt Transformations"]
+    E --> F["dbt Data Quality Tests"]
+
+    C --> G["taxi_trips"]
+    C --> H["ingestion_tracking"]
+
+    E --> I["stg_taxi_trips"]
+    E --> J["fct_daily_taxi_demand"]
+    E --> K["mart_pickup_locations"]
+
+    L["Airflow Main DAG"] -.-> B
+    L -.-> D
+    L -.-> E
+    L -.-> F
+
+    R["Airflow Recovery DAG"] --> S["Check Missing Monthly Loads"]
+    S --> H
+    S -->|"Trigger eligible recovery"| L
 ```
 
-Apache Airflow coordinates the workflow and monitors task execution.
+### Pipeline Components
 
-A separate recovery DAG checks for eligible missing monthly ingestion runs and can trigger the main pipeline when recovery is needed.
+**1. Data Source**
 
-## Data Pipeline
+The pipeline uses publicly available NYC Taxi & Limousine Commission Yellow Taxi trip data stored in Parquet format.
 
-### 1. Data Ingestion
+**2. Python Ingestion**
 
-The ingestion module downloads NYC TLC Yellow Taxi Parquet data and loads trip records into PostgreSQL.
+Python scripts process monthly taxi trip datasets and load records into PostgreSQL.
 
-Features include:
+The ingestion layer supports data validation and tracking of loaded datasets.
 
-- Monthly data ingestion
-- Local Parquet caching
-- Ingestion tracking
-- Idempotent processing
-- PostgreSQL advisory locking
-- Transactional replacement for controlled reprocessing
+**3. PostgreSQL Data Warehouse**
 
-### 2. Data Warehouse
+PostgreSQL stores the ingested trip data and ingestion metadata.
 
-PostgreSQL stores taxi trip records and ingestion metadata.
-
-Key tables:
+Primary tables:
 
 - `public.taxi_trips`
 - `public.ingestion_tracking`
 
-For January 2024, the warehouse contains **2,964,550 taxi trips**.
+**4. dbt Transformations**
 
-### 3. Data Transformation
+dbt transforms warehouse data into reusable analytical models.
 
-dbt transforms warehouse data into analytical models.
+**5. Data Quality Testing**
 
-| Model | Purpose |
+Python integration tests and dbt tests help verify pipeline correctness and data integrity.
+
+**6. Apache Airflow Orchestration**
+
+Airflow provides workflow definitions for monthly pipeline execution and daily recovery checks.
+
+## Data Warehouse
+
+### Main Tables
+
+| Table | Description |
 |---|---|
-| `stg_taxi_trips` | Staging layer for taxi trip records |
-| `fct_daily_taxi_demand` | Daily taxi demand analytics |
-| `mart_pickup_locations` | Pickup-location-level analytics |
+| `public.taxi_trips` | Stores ingested NYC Yellow Taxi trip records |
+| `public.ingestion_tracking` | Tracks monthly ingestion activity |
 
-The January 2024 processing run produced 31 daily-demand records and 260 pickup-location records.
+### Ingestion Results
 
-### 4. Workflow Orchestration
+| Metric | Result |
+|---|---|
+| Dataset | NYC Yellow Taxi |
+| Period | January 2024 |
+| Records ingested | 2,964,550 |
+| Storage | PostgreSQL 16 |
+| Source format | Parquet |
 
-The main Airflow DAG, `nyc_taxi_pipeline`, executes:
+## dbt Analytics Models
 
-```text
-Verify Airflow Environment
-          |
-          v
-Determine Target Month
-          |
-          v
-Ingest Taxi Data
-          |
-          v
-Validate Warehouse
-          |
-          v
-Run dbt Models
-          |
-          v
-Run dbt Tests
-```
+The project includes three analytical models.
 
-The main DAG is configured to run monthly on the 15th at 9:00 AM, using the America/New_York timezone.
+### 1. `stg_taxi_trips`
 
-### 5. Automated Recovery
+A staging model that prepares trip-level warehouse data for downstream analysis.
 
-The `nyc_taxi_recovery` DAG provides recovery logic for missing or incomplete monthly ingestion runs.
+### 2. `fct_daily_taxi_demand`
 
-It includes:
+A fact model designed to support daily taxi demand analysis.
 
-- Checks for eligible missing months
-- Ingestion completion verification
-- Protection against overlapping pipeline executions
-- A failure cooldown
-- PostgreSQL advisory locking
-- Controlled triggering of the main DAG
+### 3. `mart_pickup_locations`
 
-The recovery DAG is configured for daily evaluation at 10:00 AM New York time.
+An analytical model designed to support pickup-location analysis.
 
-**Operational note:** Both DAGs are intentionally paused in the current development environment. Their schedules are configured, but automatic execution is not enabled.
+These models demonstrate SQL-based transformation and analytical data modeling.
 
-## Data Quality and Validation
+## Apache Airflow Orchestration
 
-The project uses Python integration tests, warehouse validation, and dbt tests to verify pipeline behavior and analytical data quality.
+The project contains two Airflow DAGs.
 
-Validation completed during development:
+### Main Pipeline DAG
 
-- 5 Python integration tests passed
-- 10 dbt tests passed
-- Successful end-to-end Airflow pipeline execution for January 2024
+**File:** `dags/nyc_taxi_pipeline.py`
 
-## Repository Structure
+Defines the monthly ingestion, validation, and transformation workflow.
+
+### Recovery DAG
+
+**File:** `dags/nyc_taxi_recovery.py`
+
+Defines a daily workflow for checking missing monthly loads and coordinating recovery.
+
+The DAGs are currently paused to prevent unintended execution.
+
+## Data Quality & Testing
+
+The project includes automated tests for pipeline reliability.
+
+| Test Category | Result |
+|---|---|
+| dbt tests | 10 passed |
+| Python integration tests | 5 passed |
+
+Testing helps validate the ingestion and transformation components.
+
+## Project Structure
 
 ```text
 nyc-taxi-data-engineering/
@@ -160,14 +169,6 @@ nyc-taxi-data-engineering/
 |   |-- nyc_taxi_pipeline.py
 |   |-- nyc_taxi_recovery.py
 |
-|-- src/
-|   |-- ingestion/
-|       |-- ingest_taxi.py
-|
-|-- sql/
-|   |-- 01_create_tables.sql
-|   |-- 02_create_ingestion_tracking.sql
-|
 |-- dbt/
 |   |-- taxi_analytics/
 |       |-- models/
@@ -175,14 +176,12 @@ nyc-taxi-data-engineering/
 |-- config/
 |   |-- profiles.yml
 |
-|-- tests/
-|   |-- test_data_quality.py
-|
 |-- Dockerfile.airflow
-|-- docker-compose.yml
-|-- requirements.txt
-|-- .gitignore
 |-- README.md
+|-- .gitignore
+|
+|-- Additional ingestion, testing,
+|   and Docker configuration files
 ```
 
 ## Getting Started
@@ -190,72 +189,97 @@ nyc-taxi-data-engineering/
 ### Prerequisites
 
 - Python 3.12
-- Docker Desktop with Docker Compose
+- Docker and Docker Compose
+- PostgreSQL
 - Git
 
-### Clone the Repository
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/nyc-taxi-data-engineering.git
+git clone https://github.com/GraciousRegina/nyc-taxi-data-engineering.git
 cd nyc-taxi-data-engineering
 ```
 
-Replace `YOUR_USERNAME` with the GitHub account where this repository is published.
+### 2. Configure Environment Variables
 
-### Configure the Environment
+Configure the environment variables required by the project's Docker, PostgreSQL, and Airflow services.
 
-Create a local `.env` file with the environment variables required by `docker-compose.yml`.
+The dbt profile reads the PostgreSQL password from:
 
-Database credentials must be provided through environment variables rather than committed to Git.
-
-### Start the Services
-
-```bash
-docker compose up -d --build
+```text
+POSTGRES_PASSWORD
 ```
 
-The Docker environment contains the PostgreSQL warehouse and Apache Airflow services.
+Store credentials locally and do not commit secrets to GitHub.
 
-### Run the Pipeline
+### 3. Start the Infrastructure
 
-Once the environment is configured, use the Airflow web interface to inspect the DAGs and trigger the main pipeline for a supported month.
+Use the Docker Compose configuration included in the repository to start the required services.
 
-The DAGs are paused by default in the development workflow to prevent unintended automatic ingestion.
-
-### Run Tests
-
-Python tests:
+For a standard Docker Compose setup:
 
 ```bash
-pytest tests/
+docker compose up -d
 ```
 
-dbt tests, from the configured dbt environment:
+### 4. Run the Pipeline
 
-```bash
-dbt test
-```
+Use the ingestion scripts and dbt project included in the repository.
 
-The Python integration tests require an accessible test warehouse, and dbt commands require the correct database profile and environment variables.
+Airflow DAGs can be inspected through the Airflow web interface.
 
-## Engineering Considerations
+The DAGs are intentionally paused by default. Review configuration and dependencies before enabling scheduled execution.
 
-The project incorporates several production-oriented data engineering practices:
+### 5. Run Tests
 
-- **Idempotency:** Avoids reprocessing already completed monthly loads unnecessarily.
-- **Concurrency control:** Uses database advisory locks to protect ingestion and recovery operations.
-- **Observability:** Tracks ingestion status and validates warehouse contents.
-- **Modularity:** Separates ingestion, orchestration, transformations, and tests.
-- **Recoverability:** Supports controlled recovery of missing monthly loads.
-- **Credential management:** Uses environment variables for database passwords.
+Run the project's Python integration tests and dbt tests using the corresponding test commands and project configuration.
+
+## Engineering Highlights
+
+### Data Ingestion
+
+Processed nearly three million NYC Yellow Taxi records using Python and Parquet-based data processing.
+
+### Data Warehousing
+
+Implemented a PostgreSQL warehouse with ingestion tracking.
+
+### Data Modeling
+
+Built dbt staging and analytical models to support taxi demand and pickup-location analysis.
+
+### Workflow Orchestration
+
+Developed Airflow workflows for scheduled processing and recovery checks.
+
+### Data Quality
+
+Validated the project with 10 successful dbt tests and 5 successful Python integration tests.
+
+### Containerization
+
+Used Docker to support a reproducible development environment.
 
 ## Future Improvements
 
-- Deploy the pipeline to a cloud environment.
-- Add centralized monitoring and alerting.
-- Implement CI/CD for automated testing.
-- Extend the analytics layer with additional months and forecasting models.
+- Add incremental ingestion for additional months.
+- Expand historical taxi demand analysis.
+- Introduce pipeline monitoring and alerting.
+- Add a visualization dashboard.
+- Optimize large-scale data processing.
+- Expand automated data quality checks.
+
+## Data Source
+
+NYC Taxi & Limousine Commission (TLC) Trip Record Data:
+
+https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page
 
 ## Author
 
-Data Science graduate student focused on data engineering, scalable data systems, and applied analytics.
+**Gracious Regina Zigara**
+
+M.S. Data Science  
+Stevens Institute of Technology
+
+GitHub: https://github.com/GraciousRegina
