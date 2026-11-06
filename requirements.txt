@@ -1,0 +1,8 @@
+
+pandas>=2.2,<3
+pyarrow>=18,<24
+sqlalchemy>=2.0,<3
+psycopg2-binary>=2.9,<3
+requests>=2.32,<3
+python-dotenv>=1.0,<2
+pytest>=8,<10

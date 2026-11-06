@@ -1,0 +1,145 @@
+
+services:
+
+  # =====================================
+  # NYC TAXI DATA WAREHOUSE
+  # =====================================
+  postgres:
+    image: postgres:16
+    container_name: nyc_taxi_postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: taxi_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: taxi_warehouse
+
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taxi_user -d taxi_warehouse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  # =====================================
+  # AIRFLOW METADATA DATABASE
+  # =====================================
+  airflow-postgres:
+    image: postgres:16
+    container_name: nyc_taxi_airflow_postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD}
+      POSTGRES_DB: airflow
+
+    volumes:
+      - airflow_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  # =====================================
+  # AIRFLOW INITIALIZATION
+  # =====================================
+  airflow-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+
+    image: nyc-taxi-airflow:local
+
+    command: db migrate
+
+    environment: &airflow-env
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD_ENCODED}@airflow-postgres:5432/airflow"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+      # NYC TAXI WAREHOUSE CONNECTION
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: taxi_user
+      POSTGRES_DB: taxi_warehouse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./src:/opt/airflow/project/src:ro
+
+    restart: "no"
+
+
+  # =====================================
+  # AIRFLOW WEB INTERFACE
+  # =====================================
+  airflow-webserver:
+    image: nyc-taxi-airflow:local
+    container_name: nyc_taxi_airflow_webserver
+
+    command: webserver
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    environment: *airflow-env
+
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./src:/opt/airflow/project/src:ro
+      - ./config:/opt/airflow/project/config:ro
+  # =====================================
+  # AIRFLOW SCHEDULER
+  # =====================================
+  airflow-scheduler:
+    image: nyc-taxi-airflow:local
+    container_name: nyc_taxi_airflow_scheduler
+
+    command: scheduler
+    restart: unless-stopped
+
+    environment: *airflow-env
+
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+    volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./src:/opt/airflow/project/src:ro
+    - ./dbt/taxi_analytics:/opt/airflow/project/dbt
+    - ./config:/opt/airflow/project/config:ro
+
+# =====================================
+# PERSISTENT DATABASE VOLUMES
+# =====================================
+volumes:
+  postgres_data:
+  airflow_postgres_data:

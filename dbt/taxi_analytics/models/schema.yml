@@ -1,0 +1,44 @@
+
+version: 2
+
+models:
+  - name: stg_taxi_trips
+    description: "Cleaned NYC Yellow Taxi trip records."
+    columns:
+      - name: trip_id
+        description: "Unique identifier generated during ingestion."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: pickup_datetime
+        data_tests:
+          - not_null
+
+      - name: trip_distance
+        data_tests:
+          - not_null
+
+  - name: fct_daily_taxi_demand
+    description: "Daily taxi demand and revenue metrics."
+    columns:
+      - name: pickup_date
+        data_tests:
+          - unique
+          - not_null
+
+      - name: total_trips
+        data_tests:
+          - not_null
+
+  - name: mart_pickup_locations
+    description: "Taxi demand and revenue by pickup location."
+    columns:
+      - name: pickup_location_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: total_trips
+        data_tests:
+          - not_null

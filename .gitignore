@@ -1,0 +1,77 @@
+
+# Environment variables and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# Downloaded datasets and model artifacts
+data/
+datasets/
+downloads/
+*.parquet
+*.csv
+*.pkl
+*.pickle
+*.joblib
+
+# Airflow runtime files
+airflow.db
+airflow.cfg
+airflow-webserver.pid
+airflow-scheduler.pid
+airflow/logs/
+logs/
+*.log
+
+# dbt generated files
+**/target/
+**/dbt_packages/
+**/logs/
+
+# Local databases and backups
+*.db
+*.sqlite
+*.sqlite3
+*.sql.gz
+*.dump
+*.backup
+
+# IDE and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.part
+
+# Local backup scripts
+*_backup.py
+
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
