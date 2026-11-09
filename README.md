@@ -240,16 +240,25 @@ nyc-taxi-data-engineering/
 |   and Docker configuration files
 ```
 
+
 ## Getting Started
+
+Follow these steps to set up and run the NYC Taxi Data Engineering & Analytics Pipeline locally.
 
 ### Prerequisites
 
+Ensure the following tools are installed:
+
 - Python 3.12
-- Docker and Docker Compose
-- PostgreSQL
+- Docker Desktop with Docker Compose
 - Git
+- dbt-core and dbt-postgres (for running dbt locally)
+
+PostgreSQL runs inside Docker, so a separate local PostgreSQL installation is not required.
 
 ### 1. Clone the Repository
+
+Clone the project from GitHub:
 
 ```bash
 git clone https://github.com/GraciousRegina/nyc-taxi-data-engineering.git
@@ -258,42 +267,90 @@ cd nyc-taxi-data-engineering
 
 ### 2. Configure Environment Variables
 
-Configure the environment variables required by the project's Docker, PostgreSQL, and Airflow services.
+Create a local `.env` file from the example template.
 
-The dbt profile reads the following PostgreSQL settings:
+On Windows PowerShell:
 
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_DB`
+```powershell
+Copy-Item .env.example .env
+```
 
-The database host and port can also be configured using:
+On macOS or Linux:
 
-- `POSTGRES_HOST`
-- `POSTGRES_PORT`
+```bash
+cp .env.example .env
+```
 
-For dbt running inside Docker, the database service is accessible through the Docker network.
+Open `.env` and replace the placeholder passwords with your own secure credentials.
 
-For dbt running locally on Windows, use the PostgreSQL host port exposed by Docker Compose.
+| Variable | Description |
+|---|---|
+| `POSTGRES_USER` | PostgreSQL warehouse username |
+| `POSTGRES_PASSWORD` | PostgreSQL warehouse password |
+| `POSTGRES_DB` | PostgreSQL warehouse database |
+| `AIRFLOW_DB_PASSWORD` | Airflow metadata database password |
+| `AIRFLOW_DB_PASSWORD_ENCODED` | URL-encoded Airflow database password |
+| `POSTGRES_HOST` | Host used for local dbt connections |
+| `POSTGRES_PORT` | Port used for local dbt connections |
 
-Do not commit credentials or `.env` files to GitHub.
+The `AIRFLOW_DB_PASSWORD_ENCODED` value must represent the same password as `AIRFLOW_DB_PASSWORD`, encoded for use in a database URL.
+
+For local dbt execution, use:
+
+```dotenv
+POSTGRES_HOST=127.0.0.1
+POSTGRES_PORT=5433
+```
+
+For dbt running inside Docker, the PostgreSQL service is available at `postgres:5432`.
+
+**Security:** Never commit `.env` or actual credentials to GitHub. Only `.env.example`, containing placeholders, should be tracked.
 
 ### 3. Start the Infrastructure
 
-Start the project's Docker Compose services:
+Ensure Docker Desktop is running.
+
+Start the PostgreSQL and Apache Airflow services:
 
 ```bash
 docker compose up -d
 ```
 
+Verify that the containers are running:
+
+```bash
+docker compose ps
+```
+
+The main services include:
+
+- PostgreSQL warehouse (`postgres`)
+- Airflow metadata database (`airflow-postgres`)
+- Airflow scheduler (`airflow-scheduler`)
+- Airflow webserver (`airflow-webserver`)
+
+The Airflow web interface is available at:
+
+http://127.0.0.1:8080
+
 ### 4. Run the Pipeline
 
-The project includes Python ingestion scripts and dbt transformations.
+The project includes two Apache Airflow DAGs:
 
-Airflow DAGs can be inspected through the Airflow web interface.
+- `nyc_taxi_pipeline` — main ingestion and transformation workflow
+- `nyc_taxi_recovery` — recovery workflow
 
-The DAGs are intentionally paused by default. Review configuration and dependencies before enabling scheduled execution.
+List the available DAGs:
 
-### 5. Run dbt Tests
+```bash
+docker compose exec -T airflow-scheduler airflow dags list
+```
+
+The DAGs are intentionally kept paused to prevent unintended execution.
+
+To execute the pipeline, first review the configured data source, database credentials, and task dependencies. Then enable or manually trigger the appropriate DAG through the Airflow web interface.
+
+### 5. Run dbt Models and Tests
 
 Navigate to the dbt project:
 
@@ -301,23 +358,77 @@ Navigate to the dbt project:
 cd dbt/taxi_analytics
 ```
 
-Ensure the required PostgreSQL environment variables are configured.
+Ensure the PostgreSQL environment variables from your `.env` file are available in the terminal running dbt.
 
-Run:
+Verify the connection:
 
 ```bash
 dbt debug --profiles-dir ../../config
+```
+
+Run the transformation models:
+
+```bash
+dbt run --profiles-dir ../../config
+```
+
+Execute the dbt data quality tests:
+
+```bash
 dbt test --profiles-dir ../../config
 ```
 
-The dbt profile uses the following host and port defaults when environment variables are not supplied:
+The dbt project includes three analytics models:
 
-- Host: `postgres`
-- Port: `5432`
+- `stg_taxi_trips` — cleaned and standardized taxi trip data
+- `fct_daily_taxi_demand` — daily trip demand and revenue metrics
+- `mart_pickup_locations` — pickup location analytics
 
-For the current Windows development setup, PostgreSQL is accessible at `127.0.0.1:5433`.
+### 6. Run Python Integration Tests
 
-These values can be overridden using `POSTGRES_HOST` and `POSTGRES_PORT`.
+Return to the project root:
+
+```bash
+cd ../..
+```
+
+Install the Python dependencies in your active virtual environment:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Run the integration tests:
+
+```bash
+python -m pytest
+```
+
+These tests help validate the ingestion and warehouse integration components.
+
+### 7. Verify Pipeline Results
+
+After successful ingestion and transformation, verify the following:
+
+- Taxi trip records are loaded into PostgreSQL.
+- Ingestion tracking metadata is recorded.
+- Airflow tasks complete successfully.
+- dbt analytics models are materialized.
+- Data quality tests pass.
+
+The documented reference execution processed **2,964,550 NYC Yellow Taxi trip records** for January 2024.
+
+Execution screenshots and testing evidence are included in the sections above.
+
+### 8. Stop the Infrastructure
+
+To stop the running services without deleting PostgreSQL volumes:
+
+```bash
+docker compose down
+```
+
+Avoid using `docker compose down -v` unless you intentionally want to remove persistent database volumes and their stored data.
 
 ## Engineering Highlights
 
