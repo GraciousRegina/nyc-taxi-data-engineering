@@ -75,3 +75,11 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Private environment configuration
+.env
+.env.*
+!.env.example
+
+# Local dbt user configuration
+config/.user.yml
